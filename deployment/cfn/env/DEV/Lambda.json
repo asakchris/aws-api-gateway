@@ -1,0 +1,10 @@
+{
+  "Environment": "${app_environment}",
+  "RoleStackName": "${app_environment}-${app_name}-ROLE",
+  "S3StackName": "${app_environment}-${app_name}-S3",
+  "LambdaS3Prefix": "code/lambda/token",
+  "LambdaZipFileName": "$lambda_zip_filename",
+  "OAuthTokenGenUrl": "https://dev-15107069.okta.com/oauth2/default/v1/token",
+  "OAuthTokenIntrospectionUrl": "https://dev-15107069.okta.com/oauth2/default/v1/introspect",
+  "OAuthClientSecret": "MG9hNTVtcXh0NXlVYm8xdDc1ZDc6dmxoeGdCOGVpaDMwbklNNWkwUXc5UG5kNWw2ZnZmTC1MNkpsaTRFZA=="
+}

@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: This stack creates S3 bucket to store Lambda functions
+Parameters:
+  Environment:
+    Type: String
+    Description: Environment Name (DEV)
+    AllowedValues: [ 'DEV' ]
+Resources:
+  LambdaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: asakchris-api-gw-lambda-us-east-1
+Outputs:
+  LambdaBucket:
+    Description: Name of Lambda Bucket
+    Value: !Ref 'LambdaBucket'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'LambdaBucket' ] ]

@@ -29,6 +29,9 @@ Parameters:
   SecurityGroupStackName:
     Type: String
     Description: Name of the stack used to create security group
+  LoadBalancerStackName:
+    Type: String
+    Description: Name of the stack used to create load balancer
 Resources:
   # Cloud watch log group to which container send logs
   LogGroup:
@@ -91,3 +94,8 @@ Resources:
           Subnets:
             - Fn::ImportValue: !Join [ ':', [ !Ref 'VpcStackName', 'PrivateSubnetOne' ] ]
             - Fn::ImportValue: !Join [ ':', [ !Ref 'VpcStackName', 'PrivateSubnetTwo' ] ]
+      LoadBalancers:
+        - ContainerName: !Sub '${Environment}-${Platform}-${AppName}-CONTAINER'
+          ContainerPort: !Ref ContainerPort
+          TargetGroupArn:
+            Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'MetadataTargetGroupArn' ] ]

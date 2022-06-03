@@ -1,0 +1,6 @@
+{
+  "Environment": "${app_environment}",
+  "RoleStackName": "${app_environment}-${app_name}-ROLE",
+  "LambdaStackName": "${app_environment}-${app_name}-LAMBDA",
+  "LoadBalancerStackName": "${app_environment}-${app_name}-LB"
+}

@@ -12,7 +12,7 @@
       ]
     },
     {
-      "groupName": "securityGroupAndRole",
+      "groupName": "securityGroupRoleAndS3",
       "groupStacks": [
         {
           "stackName": "${app_environment}-${app_name}-SECURITY-GROUP",
@@ -23,16 +23,26 @@
           "stackName": "${app_environment}-${app_name}-ROLE",
           "templateFile": "${cfn_dir}/role.yml",
           "paramFile": "${cfn_dir}/env/${app_environment}/Role.json"
+        },
+        {
+          "stackName": "${app_environment}-${app_name}-S3",
+          "templateFile": "${cfn_dir}/s3.yml",
+          "paramFile": "${cfn_dir}/env/${app_environment}/S3.json"
         }
       ]
     },
     {
-      "groupName": "loadBalancerAndEcsCluster",
+      "groupName": "loadBalancerLambdaAndEcsCluster",
       "groupStacks": [
         {
           "stackName": "${app_environment}-${app_name}-LB",
           "templateFile": "${cfn_dir}/load-balancer.yml",
           "paramFile": "${cfn_dir}/env/${app_environment}/LoadBalancer.json"
+        },
+        {
+          "stackName": "${app_environment}-${app_name}-LAMBDA",
+          "templateFile": "${cfn_dir}/lambda.yml",
+          "paramFile": "${cfn_dir}/env/${app_environment}/Lambda.json"
         },
         {
           "stackName": "${app_environment}-${app_name}-ECS-CLUSTER",
@@ -42,12 +52,17 @@
       ]
     },
     {
-      "groupName": "ecsServices",
+      "groupName": "ecsServicesAndApiGateway",
       "groupStacks": [
         {
-          "stackName": "${app_environment}-${app_name}-ECS-SERVICE",
+          "stackName": "${app_environment}-${app_name}-METADATA-ECS-SERVICE",
           "templateFile": "${cfn_dir}/metadata-ecs-service.yml",
           "paramFile": "${cfn_dir}/env/${app_environment}/MetaDataEcsService.json"
+        },
+        {
+          "stackName": "${app_environment}-${app_name}-API-GW",
+          "templateFile": "${cfn_dir}/api-gateway.yml",
+          "paramFile": "${cfn_dir}/env/${app_environment}/ApiGateway.json"
         }
       ]
     }

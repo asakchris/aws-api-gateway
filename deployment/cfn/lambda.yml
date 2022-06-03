@@ -12,6 +12,15 @@ Parameters:
   RoleStackName:
     Type: String
     Description: Name of the stack used to create required IAM roles
+  S3StackName:
+    Type: String
+    Description: Name of the stack used to create required S3 buckets
+  LambdaS3Prefix:
+    Type: String
+    Description: S3 bucket folder in which Lambda code uploaded
+  LambdaZipFileName:
+    Type: String
+    Description: Zip file in which packaged Lambda code available
   OAuthTokenGenUrl:
     Type: String
     Description: OAuth Token Generation Url
@@ -27,7 +36,10 @@ Resources:
     Properties:
       FunctionName: !Sub '${Environment}-${Platform}-TOKEN-GEN-LAMBDA-01'
       Description: Lambda function to create token
-      Code: lambda/token_gen.py
+      Code:
+        S3Bucket:
+          Fn::ImportValue: !Join [':', [!Ref 'S3StackName', 'LambdaBucket']]
+        S3Key: !Sub '${LambdaS3Prefix}/${LambdaZipFileName}'
       Handler: token_gen.lambda_handler
       Runtime: python3.8
       Role:
@@ -47,7 +59,10 @@ Resources:
     Properties:
       FunctionName: !Sub '${Environment}-${Platform}-TOKEN-VALIDATOR-LAMBDA-02'
       Description: Lambda function to validate token
-      Code: lambda/token_validator.py
+      Code:
+        S3Bucket:
+          Fn::ImportValue: !Join [ ':', [ !Ref 'S3StackName', 'LambdaBucket' ] ]
+        S3Key: !Sub '${LambdaS3Prefix}/${LambdaZipFileName}'
       Handler: token_validator.lambda_handler
       Runtime: python3.8
       Role:
