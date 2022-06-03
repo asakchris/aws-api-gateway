@@ -28,7 +28,7 @@ Resources:
     Type: AWS::ApiGateway::Account
     Properties:
       CloudWatchRoleArn:
-        Fn::ImportValue: !Join [':', [!Ref 'RoleStackName', 'LambdaRoleArn']]
+        Fn::ImportValue: !Join [':', [!Ref 'RoleStackName', 'ApiGatewayCloudWatchRoleArn']]
 
   TokenResource:
     Type: AWS::ApiGateway::Resource
