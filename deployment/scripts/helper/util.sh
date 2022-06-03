@@ -287,7 +287,7 @@ deploy_stack_group_parallel() {
     export p_cfn_stack_name=${stack_name}
     cfn_tags="$(convert_json_to_key_value ${_cfn_tags_file})"
     # Run deploy command in parallel and collect child pid
-    local _deploy_command="aws --region $aws_region cloudformation deploy --template-file ${template_file} --stack-name ${stack_name} --parameter-overrides ${param_values} --tags ${cfn_tags} --no-fail-on-empty-changeset"
+    local _deploy_command="aws --region $aws_region cloudformation deploy --template-file ${template_file} --stack-name ${stack_name} --parameter-overrides ${param_values} --tags ${cfn_tags} --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM --no-fail-on-empty-changeset"
     execute_cfn_with_retry $stack_name "${_deploy_command}" &
     _group_child_pids+=("$!")
     _group_stacks+=("${stack_name}")

@@ -43,7 +43,11 @@
         {
           "stackName": "${app_environment}-${app_name}-LAMBDA",
           "templateFile": "${cfn_dir}/lambda.yml",
-          "paramFile": "${cfn_dir}/env/${app_environment}/Lambda.json"
+          "paramFile": "${cfn_dir}/env/${app_environment}/Lambda.json",
+          "isLambdaStack": "true",
+          "lambdaDir": "$lambda_dir",
+          "lambdaPackageDir": "$lambda_package_dir",
+          "lambdaZipFileNamePrefix": "token-lambda"
         },
         {
           "stackName": "${app_environment}-${app_name}-ECS-CLUSTER",
