@@ -3,5 +3,6 @@
   "RoleStackName": "${app_environment}-${app_name}-ROLE",
   "EcsClusterStackName": "${app_environment}-${app_name}-ECS-CLUSTER",
   "VpcStackName": "${app_environment}-${app_name}-VPC",
-  "SecurityGroupStackName": "${app_environment}-${app_name}-SECURITY-GROUP"
+  "SecurityGroupStackName": "${app_environment}-${app_name}-SECURITY-GROUP",
+  "ImageVersion": "$image_version"
 }

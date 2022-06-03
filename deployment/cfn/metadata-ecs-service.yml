@@ -13,10 +13,6 @@ Parameters:
     Type: String
     Default: 'METADATA'
     Description: Application Name
-  ContainerPort:
-    Type: Number
-    Description: Port number to use for applications
-    Default: 8080
   RoleStackName:
     Type: String
     Description: Name of the stack which is used to create Roles
@@ -32,6 +28,9 @@ Parameters:
   LoadBalancerStackName:
     Type: String
     Description: Name of the stack used to create load balancer
+  ImageVersion:
+    Type: String
+    Description: Version of the docker image
 Resources:
   # Cloud watch log group to which container send logs
   LogGroup:
@@ -57,10 +56,11 @@ Resources:
         Fn::ImportValue: !Join [ ':', [ !Ref 'RoleStackName', 'ECSTaskRoleArn' ] ]
       ContainerDefinitions:
         - Name: !Sub '${Environment}-${Platform}-${AppName}-CONTAINER'
-          Image: kamaraj/api-gateway-metadata:1.0.0
+          Image: !Sub 'kamaraj/api-gateway-metadata:${ImageVersion}'
           Essential: true
           PortMappings:
-            - ContainerPort: !Ref ContainerPort
+            - ContainerPort: 8080
+            - ContainerPort: 8081
           Environment:
             - Name: JAVA_OPTS
               Value: -XshowSettings:vm -XX:+PrintFlagsFinal
@@ -96,6 +96,6 @@ Resources:
             - Fn::ImportValue: !Join [ ':', [ !Ref 'VpcStackName', 'PrivateSubnetTwo' ] ]
       LoadBalancers:
         - ContainerName: !Sub '${Environment}-${Platform}-${AppName}-CONTAINER'
-          ContainerPort: !Ref ContainerPort
+          ContainerPort: 8080
           TargetGroupArn:
             Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'MetadataTargetGroupArn' ] ]
