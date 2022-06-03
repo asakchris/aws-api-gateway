@@ -47,6 +47,8 @@ setup_env() {
 # Check whether script is called from repository root
 export scripts_dir='./deployment/scripts'
 export cfn_dir='./deployment/cfn'
+export lambda_dir='./deployment/cfn/lambda'
+export lambda_package_dir='./deployment/lambda_package'
 if [[ "$(dirname $0)" != "$scripts_dir" ]]; then
   echo "This script must be called from repository root"
   exit 1
