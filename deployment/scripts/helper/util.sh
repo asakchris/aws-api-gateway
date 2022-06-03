@@ -62,7 +62,7 @@ cfn_package() {
   # Create Lambda package directory and src directory underneath
   mkdir -p ${_pkg_dir}/src
   # Install Python requests package in src directory
-  pip3 install requests -t ${_pkg_dir}/src
+  pip install requests -t ${_pkg_dir}/src
   # Copy Lambda python code into package src directory
   cp ${_lambda_dir}/*.py ${_pkg_dir}/src
   chmod 744 ${_pkg_dir}/src/*.py
