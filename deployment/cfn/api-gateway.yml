@@ -1,0 +1,229 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: This stack creates API Gateway
+Parameters:
+  Environment:
+    Type: String
+    Description: Environment Name (DEV)
+    AllowedValues: [ 'DEV' ]
+  Platform:
+    Type: String
+    Default: 'GW'
+    Description: Platform Name
+  LambdaStackName:
+    Type: String
+    Description: Name of the stack used to create Lambda functions
+  LoadBalancerStackName:
+    Type: String
+    Description: Name of the stack used to create Load balancer
+  RoleStackName:
+    Type: String
+    Description: Name of the stack used to create required IAM roles
+Resources:
+  ApiGatewayApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub '${Environment}-${Platform}-API-GW-01'
+      Description: API Gateway with Lambda authorizer
+  ApiGatewayAccount:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::ImportValue: !Join [':', [!Ref 'RoleStackName', 'LambdaRoleArn']]
+
+  TokenResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayApi
+      ParentId: !GetAtt ApiGatewayApi.RootResourceId
+      PathPart: token
+  ApiGatewayTokenMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayApi
+      ResourceId: !Ref TokenResource
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub
+          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations'
+          - LambdaArn:
+              Fn::ImportValue: !Join [':', [!Ref 'LambdaStackName', 'TokenGenFunctionArn']]
+
+  TokenGenFunctionApiGatewayInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        Fn::ImportValue: !Join [':', [!Ref 'LambdaStackName', 'TokenGenFunctionArn']]
+      Principal: 'apigateway.amazonaws.com'
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayApi}/*/*/*"
+
+  RestApiAuthorizerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${Environment}-${Platform}-REST-API-AUTHORIZER-ROLE-05'
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: LambdaInvokePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - 'lambda:invokeFunction'
+                Effect: 'Allow'
+                Resource:
+                  Fn::ImportValue: !Join [':', [!Ref 'LambdaStackName', 'TokenValidatorFunctionArn']]
+  RestApiAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: !Sub '${Environment}-${Platform}-API-GW-AUTHORIZER-01'
+      AuthorizerCredentials: !GetAtt RestApiAuthorizerRole.Arn
+      AuthorizerUri: !Sub
+        - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations'
+        - LambdaArn:
+            Fn::ImportValue: !Join [':', [!Ref 'LambdaStackName', 'TokenValidatorFunctionArn']]
+      AuthorizerResultTtlInSeconds: 300
+      Type: TOKEN
+      IdentitySource: 'method.request.header.token'
+      RestApiId: !Ref ApiGatewayApi
+  TokenValidatorFunctionApiGatewayInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName:
+        Fn::ImportValue: !Join [':', [!Ref 'LambdaStackName', 'TokenValidatorFunctionArn']]
+      Principal: 'apigateway.amazonaws.com'
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayApi}/*/*/*"
+
+  VpcLink:
+    Type: AWS::ApiGateway::VpcLink
+    Properties:
+      Name: !Sub '${Environment}-${Platform}-API-GW-VPC-LINK-01'
+      Description: API GW VPC Link to NLB
+      TargetArns:
+        - Fn::ImportValue: !Join [':', [!Ref 'LoadBalancerStackName', 'NetworkLoadBalancerARN']]
+
+  ApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayApi
+      ParentId: !GetAtt ApiGatewayApi.RootResourceId
+      PathPart: 'api'
+  V1Resource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayApi
+      ParentId: !Ref ApiResource
+      PathPart: 'v1'
+  MetadataResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayApi
+      ParentId: !Ref V1Resource
+      PathPart: 'metadata'
+
+  StocksResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayApi
+      ParentId: !Ref MetadataResource
+      PathPart: 'stocks'
+
+  StocksPostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayApi
+      ResourceId: !Ref StocksResource
+      HttpMethod: POST
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref RestApiAuthorizer
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: POST
+        ConnectionType: VPC_LINK
+        ConnectionId: !Sub '${VpcLink}'
+        Uri: !Sub
+          - 'http://${NlbDns}/api/v1/metadata/stocks'
+          - NlbDns:
+              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'NetworkLoadBalancerDNS' ] ]
+        TimeoutInMillis: 29000
+        RequestParameters:
+          integration.request.header.App-User-Name: 'context.authorizer.principalId'
+
+  StocksGetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayApi
+      ResourceId: !Ref StocksResource
+      HttpMethod: GET
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref RestApiAuthorizer
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: GET
+        ConnectionType: VPC_LINK
+        ConnectionId: !Sub '${VpcLink}'
+        Uri: !Sub
+          - 'http://${NlbDns}/api/v1/metadata/stocks'
+          - NlbDns:
+              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'NetworkLoadBalancerDNS' ] ]
+        TimeoutInMillis: 29000
+        RequestParameters:
+          integration.request.header.App-User-Name: 'context.authorizer.principalId'
+
+  StocksIdResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayApi
+      ParentId: !Ref StocksResource
+      PathPart: '{stockId}'
+
+  StocksByIdGetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayApi
+      ResourceId: !Ref StocksIdResource
+      HttpMethod: GET
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref RestApiAuthorizer
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: GET
+        ConnectionType: VPC_LINK
+        ConnectionId: !Sub '${VpcLink}'
+        Uri: !Sub
+          - 'http://${NlbDns}/api/v1/metadata/stocks/{stockId}'
+          - NlbDns:
+              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'NetworkLoadBalancerDNS' ] ]
+        TimeoutInMillis: 29000
+        CacheKeyParameters:
+          - 'method.request.path.stockId'
+        RequestParameters:
+          integration.request.header.App-User-Name: 'context.authorizer.principalId'
+
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ApiGatewayTokenMethod
+      - StocksPostMethod
+      - StocksGetMethod
+      - StocksByIdGetMethod
+    Properties:
+      RestApiId: !Ref ApiGatewayApi
+      Description: API Gateway Deployment
+
+  ApiGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: 'DEV'
+      Description: API Gateway DEV stage
+      RestApiId: !Ref ApiGatewayApi
+      DeploymentId: !Ref ApiGatewayDeployment

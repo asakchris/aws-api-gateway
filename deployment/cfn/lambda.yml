@@ -1,0 +1,75 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: This stack creates all Lambda functions
+Parameters:
+  Environment:
+    Type: String
+    Description: Environment Name (DEV)
+    AllowedValues: [ 'DEV' ]
+  Platform:
+    Type: String
+    Default: 'GW'
+    Description: Platform Name
+  RoleStackName:
+    Type: String
+    Description: Name of the stack used to create required IAM roles
+  OAuthTokenGenUrl:
+    Type: String
+    Description: OAuth Token Generation Url
+  OAuthTokenIntrospectionUrl:
+    Type: String
+    Description: OAuth Token Introspection Url
+  OAuthClientSecret:
+    Type: String
+    Description: OAuth Client Secret
+Resources:
+  TokenGenFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${Environment}-${Platform}-TOKEN-GEN-LAMBDA-01'
+      Description: Lambda function to create token
+      Code: lambda/token_gen.py
+      Handler: token_gen.lambda_handler
+      Runtime: python3.8
+      Role:
+        Fn::ImportValue: !Join [':', [!Ref 'RoleStackName', 'LambdaRoleArn']]
+      Environment:
+        Variables:
+          OAUTH_TOKEN_GEN_URL: !Ref OAuthTokenGenUrl
+          OAUTH_CLIENT_SECRET: !Ref OAuthClientSecret
+  TokenGenLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${TokenGenFunction}'
+      RetentionInDays: 1
+
+  TokenValidatorFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${Environment}-${Platform}-TOKEN-VALIDATOR-LAMBDA-02'
+      Description: Lambda function to validate token
+      Code: lambda/token_validator.py
+      Handler: token_validator.lambda_handler
+      Runtime: python3.8
+      Role:
+        Fn::ImportValue: !Join [':', [!Ref 'RoleStackName', 'LambdaRoleArn']]
+      Environment:
+        Variables:
+          OAUTH_TOKEN_GEN_URL: !Ref OAuthTokenIntrospectionUrl
+          TOKEN_HOST: !Ref OAuthClientSecret
+          OAUTH_CLIENT_SECRET: !Ref OAuthClientSecret
+  TokenValidatorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${TokenValidatorFunction}'
+      RetentionInDays: 1
+Outputs:
+  TokenGenFunction:
+    Description: Token Gen Function Arn
+    Value: !GetAtt 'TokenGenFunction.Arn'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'TokenGenFunctionArn' ] ]
+  TokenValidatorFunction:
+    Description: Token Validator Function Arn
+    Value: !GetAtt 'TokenValidatorFunction.Arn'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'TokenValidatorFunctionArn' ] ]

@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: This stack creates all required security groups
+Parameters:
+  Environment:
+    Type: String
+    Description: Environment Name (DEV)
+    AllowedValues: [ 'DEV' ]
+  Platform:
+    Type: String
+    Default: 'GW'
+    Description: Platform Name
+  VpcStackName:
+    Type: String
+    Description: Name of the stack which is used to create VPC and Subnets
+Resources:
+  # Load balancer security group
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: LOAD-BALANCER-SG
+      GroupDescription: Access to the public facing load balancer
+      VpcId:
+        Fn::ImportValue: !Join [ ':', [ !Ref 'VpcStackName', 'VPCId' ] ]
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp:
+            Fn::ImportValue: !Join [ ':', [ !Ref 'VpcStackName', 'VPCCidrBlock' ] ]
+          Description: Allow HTTP access from VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-${Platform}-ALB-SG-01'
+
+  # A security group for the containers
+  ContainerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: security group for the containers
+      VpcId:
+        Fn::ImportValue: !Join [ ':', [ !Ref 'VpcStackName', 'VPCId' ] ]
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-${Platform}-CONTAINER-SG-02'
+  # Allow traffic from load balancer into container
+  ContainerSecurityGroupIngressFromLB:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress from the Load balancer
+      GroupId: !Ref 'ContainerSecurityGroup'
+      IpProtocol: tcp
+      FromPort: 8080
+      ToPort: 8081
+      SourceSecurityGroupId: !Ref 'LoadBalancerSecurityGroup'
+Outputs:
+  LoadBalancerSecurityGroup:
+    Description: Container Security Group Id
+    Value: !Ref 'LoadBalancerSecurityGroup'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'LoadBalancerSecurityGroupId' ] ]
+  ContainerSecurityGroup:
+    Description: Container Security Group Id
+    Value: !Ref 'ContainerSecurityGroup'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ContainerSecurityGroupId' ] ]
