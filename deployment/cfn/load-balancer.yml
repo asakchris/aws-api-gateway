@@ -27,6 +27,8 @@ Resources:
         - Fn::ImportValue: !Join [ ':', [ !Ref 'VpcStackName', 'PrivateSubnetTwo' ] ]
   NetworkLoadBalancerTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn:
+      - AppLoadBalancerListenerHttp
     Properties:
       Name: !Sub '${Environment}-${Platform}-NLB-TG-01'
       Port: 80
