@@ -1,4 +1,5 @@
 {
+  "cfnTagsFile": "${cfn_dir}/env/cfnTags.json",
   "stacks": [
     {
       "groupName": "vpc",
