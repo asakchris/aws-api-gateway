@@ -64,7 +64,7 @@ Resources:
         - Fn::ImportValue: !Join [ ':', [ !Ref 'VpcStackName', 'PrivateSubnetOne' ] ]
         - Fn::ImportValue: !Join [ ':', [ !Ref 'VpcStackName', 'PrivateSubnetTwo' ] ]
       SecurityGroups:
-        - Fn::ImportValue: !Join [':', [!Ref 'SecurityGroupStackName', 'LoadBalancerSecurityGroup']]
+        - Fn::ImportValue: !Join [':', [!Ref 'SecurityGroupStackName', 'LoadBalancerSecurityGroupId']]
 
   # Load balancer listener
   AppLoadBalancerListenerHttp:

@@ -1,7 +1,7 @@
 {
   "Environment": "${app_environment}",
   "RoleStackName": "${app_environment}-${app_name}-ROLE",
-  "S3StackName": "${app_environment}-${app_name}-S3",
+  "LambdaS3Bucket": "asakchris-api-gw-lambda-us-east-1",
   "LambdaS3Prefix": "code/lambda/token",
   "LambdaZipFileName": "$lambda_zip_filename",
   "OAuthTokenGenUrl": "https://dev-15107069.okta.com/oauth2/default/v1/token",
