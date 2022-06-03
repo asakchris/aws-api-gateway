@@ -204,8 +204,6 @@ Resources:
           - NlbDns:
               Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'NetworkLoadBalancerDNS' ] ]
         TimeoutInMillis: 29000
-        CacheKeyParameters:
-          - 'method.request.path.stockId'
         RequestParameters:
           integration.request.header.App-User-Name: 'context.authorizer.principalId'
 
