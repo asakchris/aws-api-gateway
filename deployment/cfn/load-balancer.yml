@@ -37,9 +37,6 @@ Resources:
           Port: 80
       VpcId:
         Fn::ImportValue: !Join [ ':', [ !Ref 'VpcStackName', 'VPCId' ] ]
-      TargetGroupAttributes:
-        - Key: deregistration_delay.timeout_seconds
-          Value: 60
   NetworkLoadBalancerListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
