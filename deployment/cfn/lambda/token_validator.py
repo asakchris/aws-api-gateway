@@ -1,21 +1,18 @@
-import requests
 import json
 import os
 
+import requests
+
 
 def lambda_handler(event, context):
-  if 'headers' not in event:
-    raise Exception('Required Headers Missing')
+  print(event)
 
-  lowercase_headers = {k.lower(): v for k, v in event['headers'].items()}
+  # Validate request
+  validate(event)
 
-  if 'token' not in lowercase_headers:
-    print('token Header Missing')
-    raise Exception('Unauthorized')
-
-  token = lowercase_headers['token']
-
+  token = event['authorizationToken']
   response_dict = validate_token(token)
+
   if response_dict.get('active'):
     principal_id = response_dict['sub']
     print('create headers')
@@ -35,13 +32,24 @@ def lambda_handler(event, context):
     raise Exception('Unauthorized')
 
 
+def validate(event):
+  if 'authorizationToken' in event:
+    application_token = event['authorizationToken']
+    print('application_token: ', application_token)
+    if not application_token:
+      raise Exception('Invalid token')
+  else:
+    print('Token header is missing')
+    raise Exception('Invalid token')
+
+
 def validate_token(token):
   url = os.environ['OAUTH_TOKEN_INTROSPECT_URL']
-  client_secret = os.environ('OAUTH_CLIENT_SECRET')
+  client_secret = os.environ['OAUTH_CLIENT_SECRET']
   headers = {'Content-Type': 'application/x-www-form-urlencoded',
              'Authorization': f'Basic {client_secret}'}
   payload = f'token={token}'
-  response = requests.post(url=url, payload=payload, headers=headers)
+  response = requests.post(url=url, data=payload, headers=headers)
   response_dict = json.loads(response.text)
   print(response_dict)
   return response_dict

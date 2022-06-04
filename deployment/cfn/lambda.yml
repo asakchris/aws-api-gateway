@@ -67,8 +67,7 @@ Resources:
         Fn::ImportValue: !Join [':', [!Ref 'RoleStackName', 'LambdaRoleArn']]
       Environment:
         Variables:
-          OAUTH_TOKEN_GEN_URL: !Ref OAuthTokenIntrospectionUrl
-          TOKEN_HOST: !Ref OAuthClientSecret
+          OAUTH_TOKEN_INTROSPECT_URL: !Ref OAuthTokenIntrospectionUrl
           OAUTH_CLIENT_SECRET: !Ref OAuthClientSecret
   TokenValidatorLogGroup:
     Type: AWS::Logs::LogGroup
