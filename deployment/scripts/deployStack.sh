@@ -77,7 +77,7 @@ echo "All stacks are deployed successfully"
 # So, check for ECS services without running tasks and fail the deployment if any
 if [ "${is_active}" = "true" ]; then
   echo "ECS Services are started, so need to check for ECS services without running tasks"
-  get_group_stack_property_value ${cfn_dir}/env/stacks.json 1 0 "stackName" l_stack_name
+  get_group_stack_property_value ${cfn_dir}/env/stacks.json 3 0 "stackName" l_stack_name
   echo "stack_name: ${l_stack_name}"
   get_ecs_servies_with_no_tasks "${l_stack_name}" EcsClusterName
   task_check_rc=$?

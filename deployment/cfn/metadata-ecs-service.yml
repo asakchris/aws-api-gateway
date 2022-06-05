@@ -99,3 +99,15 @@ Resources:
           ContainerPort: 8080
           TargetGroupArn:
             Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'MetadataTargetGroupArn' ] ]
+Outputs:
+  ClusterName:
+    Description: Name of the ECS cluster
+    Value:
+      Fn::ImportValue: !Join [ ':', [ !Ref 'EcsClusterStackName', 'EcsClusterName' ] ]
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ClusterName' ] ]
+  ServiceName:
+    Description: Name of the ECS Service
+    Value: !GetAtt 'ECSService.Name'
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ServiceName' ] ]
