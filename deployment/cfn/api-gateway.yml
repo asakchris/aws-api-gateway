@@ -194,6 +194,8 @@ Resources:
       HttpMethod: GET
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref RestApiAuthorizer
+      RequestParameters:
+        method.request.path.stockId: true
       Integration:
         Type: HTTP_PROXY
         IntegrationHttpMethod: GET
