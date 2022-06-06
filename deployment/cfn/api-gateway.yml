@@ -230,3 +230,6 @@ Resources:
       Description: API Gateway DEV stage
       RestApiId: !Ref ApiGatewayApi
       DeploymentId: !Ref ApiGatewayDeployment
+      MethodSettings:
+        - ThrottlingBurstLimit: 1
+          ThrottlingRateLimit: 1
