@@ -40,8 +40,8 @@ def lambda_handler(event, context):
 
 
 def validate(event):
-  event_lower = {k.lower(): v for k, v in event.items()}
-  h_content_type = event_lower['headers']['content-type']
+  headers_lower = {k.lower(): v for k, v in event['headers'].items()}
+  h_content_type = headers_lower['content-type']
   print('h_content_type: ', h_content_type)
   if h_content_type != 'application/x-www-form-urlencoded':
     print('h_content_type: ', h_content_type)
