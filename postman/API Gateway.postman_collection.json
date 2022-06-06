@@ -1,0 +1,164 @@
+{
+	"info": {
+		"_postman_id": "e2ad333d-3002-4f1a-81e5-1c3c62ab8062",
+		"name": "API Gateway",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "5078417"
+	},
+	"item": [
+		{
+			"name": "Generate Access Token",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = JSON.parse(responseBody);\r",
+							"postman.setEnvironmentVariable(\"AUTH_HEADER_VALUE\", jsonData.access_token);\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "username",
+							"value": "{{USERNAME}}",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "{{PASSWORD}}",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{URL_PREFIX}}/token",
+					"host": [
+						"{{URL_PREFIX}}"
+					],
+					"path": [
+						"token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Stock",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "{{AUTH_HEADER_NAME}}",
+						"value": "{{AUTH_HEADER_VALUE}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\": \"Microsoft\",\r\n    \"ticker\": \"MSFT\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{URL_PREFIX}}/api/v1/metadata/stocks",
+					"host": [
+						"{{URL_PREFIX}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"metadata",
+						"stocks"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Stock by Id",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "{{AUTH_HEADER_NAME}}",
+						"value": "{{AUTH_HEADER_VALUE}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{URL_PREFIX}}/api/v1/metadata/stocks/1",
+					"host": [
+						"{{URL_PREFIX}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"metadata",
+						"stocks",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get all Stocks",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "{{AUTH_HEADER_NAME}}",
+						"value": "{{AUTH_HEADER_VALUE}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{URL_PREFIX}}/api/v1/metadata/stocks",
+					"host": [
+						"{{URL_PREFIX}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"metadata",
+						"stocks"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"let env = pm.environment.get('env');",
+					""
+				]
+			}
+		}
+	]
+}
