@@ -5,6 +5,7 @@ This project includes following:
 - Spring Boot application for API endpoints
 - Spring Boot application is deployed in ECS Fargate cluster which is behind the ALB
 - AWS API Gateway route the request to ALB using NLB (with VPC Link)
+- Rate limit using API key and usage plan
 
 ### Architecture
 ![architecture](images/api_gw.png)
