@@ -40,7 +40,9 @@ def lambda_handler(event, context):
 
 
 def validate(event):
-  h_content_type = event['headers']['Content-Type']
+  event_lower = {k.lower(): v for k, v in event.items()}
+  h_content_type = event_lower['headers']['content-type']
+  print('h_content_type: ', h_content_type)
   if h_content_type != 'application/x-www-form-urlencoded':
     print('h_content_type: ', h_content_type)
     raise TokenException('Invalid Content-Type header', 401,

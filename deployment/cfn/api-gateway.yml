@@ -30,6 +30,15 @@ Resources:
       CloudWatchRoleArn:
         Fn::ImportValue: !Join [':', [!Ref 'RoleStackName', 'ApiGatewayCloudWatchRoleArn']]
 
+  # Validator for request parameters and headers
+  RequestValidator:
+    Type: AWS::ApiGateway::RequestValidator
+    Properties:
+      Name: 'Validate request parameters'
+      RestApiId: !Ref ApiGatewayApi
+      ValidateRequestBody: false
+      ValidateRequestParameters: true
+
   TokenResource:
     Type: AWS::ApiGateway::Resource
     Properties:
@@ -39,10 +48,12 @@ Resources:
   ApiGatewayTokenMethod:
     Type: AWS::ApiGateway::Method
     Properties:
+      HttpMethod: POST
       RestApiId: !Ref ApiGatewayApi
       ResourceId: !Ref TokenResource
       AuthorizationType: NONE
-      HttpMethod: POST
+      ApiKeyRequired: true
+      RequestValidatorId: !Ref RequestValidator
       Integration:
         IntegrationHttpMethod: POST
         Type: AWS_PROXY
@@ -140,11 +151,15 @@ Resources:
   StocksPostMethod:
     Type: AWS::ApiGateway::Method
     Properties:
+      HttpMethod: POST
       RestApiId: !Ref ApiGatewayApi
       ResourceId: !Ref StocksResource
-      HttpMethod: POST
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref RestApiAuthorizer
+      ApiKeyRequired: true
+      RequestValidatorId: !Ref RequestValidator
+      RequestParameters:
+        method.request.header.token: true
       Integration:
         Type: HTTP_PROXY
         IntegrationHttpMethod: POST
@@ -161,11 +176,15 @@ Resources:
   StocksGetMethod:
     Type: AWS::ApiGateway::Method
     Properties:
+      HttpMethod: GET
       RestApiId: !Ref ApiGatewayApi
       ResourceId: !Ref StocksResource
-      HttpMethod: GET
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref RestApiAuthorizer
+      ApiKeyRequired: true
+      RequestValidatorId: !Ref RequestValidator
+      RequestParameters:
+        method.request.header.token: true
       Integration:
         Type: HTTP_PROXY
         IntegrationHttpMethod: GET
@@ -189,12 +208,15 @@ Resources:
   StocksByIdGetMethod:
     Type: AWS::ApiGateway::Method
     Properties:
+      HttpMethod: GET
       RestApiId: !Ref ApiGatewayApi
       ResourceId: !Ref StocksIdResource
-      HttpMethod: GET
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref RestApiAuthorizer
+      ApiKeyRequired: true
+      RequestValidatorId: !Ref RequestValidator
       RequestParameters:
+        method.request.header.token: true
         method.request.path.stockId: true
       Integration:
         Type: HTTP_PROXY
@@ -226,12 +248,100 @@ Resources:
   ApiGatewayStage:
     Type: AWS::ApiGateway::Stage
     Properties:
-      StageName: 'DEV'
+      StageName: !Ref Environment
       Description: API Gateway DEV stage
       RestApiId: !Ref ApiGatewayApi
       DeploymentId: !Ref ApiGatewayDeployment
+      # Default rate limit for the stage
       MethodSettings:
         - ResourcePath: '/*'
           HttpMethod: '*'
           ThrottlingBurstLimit: 1
           ThrottlingRateLimit: 1
+
+  # Same throttle settings for all methods
+  UsagePlanOne:
+    Type: AWS::ApiGateway::UsagePlan
+    Properties:
+      UsagePlanName: PLAN1_100_REQUESTS_PER_DAY_WITH_BURST_10_RATE_20
+      Description: >- 
+        100 requests per day quota with default burst limit as 10 requests and rate limit as 
+        20 requests per second
+      ApiStages:
+        - ApiId: !Ref ApiGatewayApi
+          Stage: !Ref ApiGatewayStage
+      Quota:
+        Limit: 100
+        Period: DAY
+      Throttle:
+        # Concurrent requests
+        BurstLimit: 10
+        # Rate at which requests can arrive per second
+        RateLimit: 20
+
+  # Override default throttle settings at method level
+  UsagePlanTwo:
+    Type: AWS::ApiGateway::UsagePlan
+    Properties:
+      UsagePlanName: PLAN2_500_REQUESTS_PER_DAY_WITH_BURST_15_RATE_20_METHOD_LEVEL_THROTTLE
+      Description: >-
+        500 requests per day quota with default burst limit as 15 requests and rate limit as 
+        20 requests per second. Default throttle settings are overridden at method level.
+      ApiStages:
+        - ApiId: !Ref ApiGatewayApi
+          Stage: !Ref ApiGatewayStage
+          Throttle:
+            "/token/POST":
+              BurstLimit: 5
+              RateLimit: 10
+            "/api/v1/metadata/stocks/POST":
+              BurstLimit: 5
+              RateLimit: 10
+            "/api/v1/metadata/stocks/GET":
+              BurstLimit: 10
+              RateLimit: 20
+            "/api/v1/metadata/stocks/{stockId}/GET":
+              BurstLimit: 10
+              RateLimit: 20
+      Quota:
+        Limit: 500
+        Period: DAY
+      Throttle:
+        # Concurrent requests
+        BurstLimit: 15
+        # Rate at which requests can arrive per second
+        RateLimit: 20
+
+  # CustomerOne
+  ApiKeyCustomerOne:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Name: CUSTOMER_1
+      Description: API Key for customer 1
+      Enabled: true
+      StageKeys:
+        - RestApiId: !Ref ApiGatewayApi
+          StageName: !Ref ApiGatewayStage
+  CustomerOneUsagePlan:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref ApiKeyCustomerOne
+      KeyType: API_KEY
+      UsagePlanId: !Ref UsagePlanOne
+
+  # CustomerTwo
+  ApiKeyCustomerTwo:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Name: CUSTOMER_2
+      Description: API Key for customer 2
+      Enabled: true
+      StageKeys:
+        - RestApiId: !Ref ApiGatewayApi
+          StageName: !Ref ApiGatewayStage
+  CustomerTwoUsagePlan:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref ApiKeyCustomerTwo
+      KeyType: API_KEY
+      UsagePlanId: !Ref UsagePlanTwo
