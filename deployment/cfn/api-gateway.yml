@@ -231,5 +231,7 @@ Resources:
       RestApiId: !Ref ApiGatewayApi
       DeploymentId: !Ref ApiGatewayDeployment
       MethodSettings:
-        - ThrottlingBurstLimit: 1
+        - ResourcePath: '/*'
+          HttpMethod: '*'
+          ThrottlingBurstLimit: 1
           ThrottlingRateLimit: 1
