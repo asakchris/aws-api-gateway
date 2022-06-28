@@ -11,6 +11,7 @@
 
   <modules>
     <module>metadata</module>
+    <module>performance-testing</module>
   </modules>
 
   <parent>
@@ -20,7 +21,7 @@
   </parent>
 
   <properties>
-    <java.version>18</java.version>
+    <java.version>17</java.version>
     <dockerfile-maven-plugin.version>1.4.13</dockerfile-maven-plugin.version>
   </properties>
 

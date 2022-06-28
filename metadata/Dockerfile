@@ -1,12 +1,12 @@
 # the first stage of build will extract the layers
-FROM amazoncorretto:18 as builder
+FROM amazoncorretto:17 as builder
 ARG ARTIFACT
 WORKDIR application
 COPY ${ARTIFACT} application.jar
 RUN java -Djarmode=layertools -jar application.jar extract
 
 # the second stage of build will copy the extracted layers
-FROM amazoncorretto:18
+FROM amazoncorretto:17
 # Copy from previous stage
 WORKDIR /opt/docker/application
 COPY --from=builder \
