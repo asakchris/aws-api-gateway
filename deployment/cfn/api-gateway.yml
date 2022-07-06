@@ -168,7 +168,7 @@ Resources:
         Uri: !Sub
           - 'http://${NlbDns}/api/v1/metadata/stocks'
           - NlbDns:
-              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'NetworkLoadBalancerDNS' ] ]
+              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'LoadBalancerDNS' ] ]
         TimeoutInMillis: 29000
         RequestParameters:
           integration.request.header.App-User-Name: 'context.authorizer.principalId'
@@ -193,7 +193,7 @@ Resources:
         Uri: !Sub
           - 'http://${NlbDns}/api/v1/metadata/stocks'
           - NlbDns:
-              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'NetworkLoadBalancerDNS' ] ]
+              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'LoadBalancerDNS' ] ]
         TimeoutInMillis: 29000
         RequestParameters:
           integration.request.header.App-User-Name: 'context.authorizer.principalId'
@@ -226,7 +226,7 @@ Resources:
         Uri: !Sub
           - 'http://${NlbDns}/api/v1/metadata/stocks/{stockId}'
           - NlbDns:
-              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'NetworkLoadBalancerDNS' ] ]
+              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'LoadBalancerDNS' ] ]
         TimeoutInMillis: 29000
         CacheKeyParameters:
           - 'method.request.path.stockId'
