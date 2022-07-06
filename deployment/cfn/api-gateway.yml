@@ -102,7 +102,7 @@ Resources:
         - LambdaArn:
             Fn::ImportValue: !Join [':', [!Ref 'LambdaStackName', 'TokenValidatorFunctionArn']]
       AuthorizerResultTtlInSeconds: 300
-      Type: TOKEN
+      Type: REQUEST
       IdentitySource: 'method.request.header.token'
       RestApiId: !Ref ApiGatewayApi
   TokenValidatorFunctionApiGatewayInvoke:
@@ -172,6 +172,8 @@ Resources:
         TimeoutInMillis: 29000
         RequestParameters:
           integration.request.header.App-User-Name: 'context.authorizer.principalId'
+          integration.request.header.App-Account-Name: 'context.authorizer.accountName'
+          integration.request.header.Request-Id: 'context.authorizer.requestId'
 
   StocksGetMethod:
     Type: AWS::ApiGateway::Method
@@ -197,6 +199,8 @@ Resources:
         TimeoutInMillis: 29000
         RequestParameters:
           integration.request.header.App-User-Name: 'context.authorizer.principalId'
+          integration.request.header.App-Account-Name: 'context.authorizer.accountName'
+          integration.request.header.Request-Id: 'context.authorizer.requestId'
 
   StocksIdResource:
     Type: AWS::ApiGateway::Resource
@@ -233,6 +237,8 @@ Resources:
         RequestParameters:
           integration.request.path.stockId: 'method.request.path.stockId'
           integration.request.header.App-User-Name: 'context.authorizer.principalId'
+          integration.request.header.App-Account-Name: 'context.authorizer.accountName'
+          integration.request.header.Request-Id: 'context.authorizer.requestId'
 
   ApiGatewayDeployment:
     Type: AWS::ApiGateway::Deployment

@@ -5,16 +5,19 @@ import os
 import requests
 
 log = logging.getLogger()
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 
 def lambda_handler(event, context):
     log.debug("event: {}".format(event))
 
+    request_id = event["requestContext"]["requestId"]
+    log.info("request_id: {}".format(request_id))
+
     # Validate request
     validate(event)
 
-    access_token = event["authorizationToken"]
+    access_token = event["headers"]["token"]
     log.debug("access_token: {}".format(access_token))
 
     # Call Okta to validate token
@@ -26,23 +29,24 @@ def lambda_handler(event, context):
             username = response_dict["username"]
         
         account_name = ""
-        if "AccountName" in response_dict:
-            account_name = response_dict["AccountName"]
+        if "sub" in response_dict:
+            account_name = response_dict["sub"]
 
         log.info("username: {}, account_name: {}"
                  .format(username, account_name))
-        return generate_policy(username, account_name, "Allow", "*")
+        return generate_policy(username, account_name, request_id, "Allow", "*")
     else:
         log.info("Invalid Token: {}".format(access_token))
         raise Exception("Unauthorized")
 
 
 def validate(event):
-    if "authorizationToken" in event:
-        application_token = event["authorizationToken"]
-        log.debug("application_token: {}".format(application_token))
-        if not application_token:
-            raise Exception("Invalid token")
+    if "headers" in event:
+        if "token" in event["headers"]:
+            application_token = event["headers"]["token"]
+            log.debug("application_token: {}".format(application_token))
+            if not application_token:
+                raise Exception("Invalid token")
     else:
         log.info("Token header is missing")
         raise Exception("Invalid token")
@@ -67,7 +71,7 @@ def validate_token(access_token):
     return response_dict
 
 
-def generate_policy(username, account_name, effect, method_arn):
+def generate_policy(username, account_name, request_id, effect, method_arn):
     policy_document = {
         "principalId": username,
         "policyDocument": {
@@ -82,7 +86,8 @@ def generate_policy(username, account_name, effect, method_arn):
         },
         "context": {
             "username": username,
-            "accountName": account_name
+            "accountName": account_name,
+            "requestId": request_id
         }
     }
     return policy_document
