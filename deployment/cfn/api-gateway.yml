@@ -177,8 +177,8 @@ Resources:
         ConnectionType: VPC_LINK
         ConnectionId: !Sub '${VpcLink}'
         Uri: !Sub
-          - 'http://${NlbDns}/api/v1/metadata/stocks'
-          - NlbDns:
+          - 'http://${LbDns}/api/v1/metadata/stocks'
+          - LbDns:
               Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'LoadBalancerDNS' ] ]
         TimeoutInMillis: 29000
         RequestParameters:
@@ -204,8 +204,8 @@ Resources:
         ConnectionType: VPC_LINK
         ConnectionId: !Sub '${VpcLink}'
         Uri: !Sub
-          - 'http://${NlbDns}/api/v1/metadata/stocks'
-          - NlbDns:
+          - 'http://${LbDns}/api/v1/metadata/stocks'
+          - LbDns:
               Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'LoadBalancerDNS' ] ]
         TimeoutInMillis: 29000
         RequestParameters:
@@ -239,14 +239,48 @@ Resources:
         ConnectionType: VPC_LINK
         ConnectionId: !Sub '${VpcLink}'
         Uri: !Sub
-          - 'http://${NlbDns}/api/v1/metadata/stocks/{stockId}'
-          - NlbDns:
+          - 'http://${LbDns}/api/v1/metadata/stocks/{stockId}'
+          - LbDns:
               Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'LoadBalancerDNS' ] ]
         TimeoutInMillis: 29000
         CacheKeyParameters:
           - 'method.request.path.stockId'
         RequestParameters:
           integration.request.path.stockId: 'method.request.path.stockId'
+          integration.request.header.App-User-Name: 'context.authorizer.principalId'
+          integration.request.header.App-Account-Name: 'context.authorizer.accountName'
+          integration.request.header.Request-Id: 'context.requestId'
+
+  AuditLogsResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayApi
+      ParentId: !Ref MetadataResource
+      PathPart: 'audit-logs'
+
+  AuditLogsGetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      RestApiId: !Ref ApiGatewayApi
+      ResourceId: !Ref AuditLogsResource
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref RestApiAuthorizer
+      ApiKeyRequired: true
+      RequestValidatorId: !Ref RequestValidator
+      RequestParameters:
+        method.request.header.token: true
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: GET
+        ConnectionType: VPC_LINK
+        ConnectionId: !Sub '${VpcLink}'
+        Uri: !Sub
+          - 'http://${LbDns}/api/v1/metadata/audit-logs'
+          - LbDns:
+              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'LoadBalancerDNS' ] ]
+        TimeoutInMillis: 29000
+        RequestParameters:
           integration.request.header.App-User-Name: 'context.authorizer.principalId'
           integration.request.header.App-Account-Name: 'context.authorizer.accountName'
           integration.request.header.Request-Id: 'context.requestId'
@@ -276,6 +310,7 @@ Resources:
       - StocksPostMethod
       - StocksGetMethod
       - StocksByIdGetMethod
+      - AuditLogsGetMethod
     Properties:
       RestApiId: !Ref ApiGatewayApi
       Description: API Gateway Deployment
