@@ -294,6 +294,42 @@ Resources:
           integration.request.header.App-Account-Name: 'context.authorizer.accountName'
           integration.request.header.Request-Id: 'context.requestId'
 
+  # H2 console
+  H2ConsoleResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayApi
+      ParentId: !Ref MetadataResource
+      PathPart: 'h2-console'
+  H2ConsoleProxyResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayApi
+      ParentId: !Ref H2ConsoleResource
+      PathPart: '{proxy+}'
+  H2ConsoleProxyAnyMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      RestApiId: !Ref ApiGatewayApi
+      ResourceId: !Ref H2ConsoleProxyResource
+      AuthorizationType: NONE
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: ANY
+        ConnectionType: VPC_LINK
+        ConnectionId: !Sub '${VpcLink}'
+        Uri: !Sub
+          - 'http://${LbDns}/api/v1/metadata/h2-console/{proxy}'
+          - LbDns:
+              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'LoadBalancerDNS' ] ]
+        TimeoutInMillis: 29000
+        CacheKeyParameters:
+          - 'method.request.path.proxy'
+        RequestParameters:
+          integration.request.path.proxy: 'method.request.path.proxy'
+
+
   # API Gateway Stage
   ApiGatewayStage:
     Type: AWS::ApiGateway::Stage
