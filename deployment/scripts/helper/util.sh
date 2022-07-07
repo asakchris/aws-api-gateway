@@ -678,6 +678,56 @@ rolling_restart() {
   fi
 }
 
+# This function deploys API Gateway stage
+# It takes 1 arguments
+# (1) stacks.json filename with path
+deploy_api_gw_stage() {
+  local _stack_file=$1
+  echo "_stack_file: ${_stack_file}, _v_stack_name: ${_v_stack_name}"
+
+  local _current_date=$(date)
+  echo "_current_date: ${_current_date}"
+
+  local _cfn_tags_file=$(envsubst <"${_stack_file}" | jq -r .cfnTagsFile)
+  echo "_cfn_tags_file: ${_cfn_tags_file}"
+
+  local _length=$(jq -r '.stacks | length' "${_stack_file}")
+  ((_length--))
+  echo "_length: ${_length}"
+
+  local _return_code=0
+  for i in $(seq 0 "${_length}"); do
+    local _grp_length=$(jq -r --argjson index "${i}" '.stacks[$index].groupStacks | length' "${_stack_file}")
+    ((_grp_length--))
+    echo "_grp_length: ${_grp_length}"
+
+    for j in $(seq 0 "${_grp_length}"); do
+      get_group_stack_property_value "${_stack_file}" "${i}" "${j}" "isApiGwStack" is_api_gw_stack
+      echo "is_api_gw_stack: ${is_api_gw_stack}"
+
+      if [ "${is_api_gw_stack}" = "true" ]; then
+        get_group_stack_property_value "${_stack_file}" "${i}" "${j}" "stackName" v_stack_name
+        echo "v_stack_name: ${v_stack_name}"
+
+        local _v_api_gw_id=$(aws --region "${aws_region}" cloudformation describe-stacks --stack-name "${v_stack_name}" --query "Stacks[0].Outputs[?OutputKey=='ApiGatewayId'].OutputValue" --output text)
+        echo "_v_api_gw_id: ${_v_api_gw_id}"
+        local _v_api_gw_stage_name=$(aws --region "${aws_region}" cloudformation describe-stacks --stack-name "${v_stack_name}" --query "Stacks[0].Outputs[?OutputKey=='ApiGwStageName'].OutputValue" --output text)
+        echo "_v_api_gw_stage_name: ${_v_api_gw_stage_name}"
+
+        aws --region "${aws_region}" apigateway create-deployment --rest-api-id "${_v_api_gw_id}" --stage-name "${_v_api_gw_stage_name}" --description "Deployed from CLI on ${_current_date}"
+        _aws_command_rc=$?
+        echo "_aws_command_rc: ${_aws_command_rc}"
+        if [ ${_aws_command_rc} -ne 0 ]; then
+          echo "API Gateway deployment failed for ${_v_api_gw_id}"
+          _return_code=${_aws_command_rc}
+        fi
+      fi
+    done
+  done
+
+  return ${_return_code}
+}
+
 # This function shows how to invoke deploy script
 show_script_usage_deploy() {
   echo -e "\n************************************************************************************************"

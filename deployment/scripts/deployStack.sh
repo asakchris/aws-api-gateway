@@ -72,6 +72,19 @@ fi
 
 echo "All stacks are deployed successfully"
 
+# API Gateway will not deploy changes to the stages from second time, so run AWS CLI to
+# manually deploy stage. It should run only during deployment, not start/stop
+if [ -z "${is_maintenance}" ] || [ "${is_maintenance}" != "true" ]; then
+  echo "Start deploying API Gateway Stage"
+  deploy_api_gw_stage ${cfn_dir}/env/stacks.json
+  api_gw_deploy_rc=$?
+  if [ "${api_gw_deploy_rc}" -ne "0" ]; then
+    echo "API Gateway deployment failed, so failing deployment: ${api_gw_deploy_rc}"
+    exit 1
+  fi
+  echo "Deployed API Gateway Stage successfully"
+fi
+
 # CFN deploy command fails due to runtime error, then the command will not reach the service
 # Hence, it will not start the tasks for ECS service
 # So, check for ECS services without running tasks and fail the deployment if any

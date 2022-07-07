@@ -9,6 +9,10 @@ Parameters:
     Type: String
     Default: 'GW'
     Description: Platform Name
+  StageName:
+    Type: String
+    Default: 'dev'
+    Description: API Gateway Stage Name
   LambdaStackName:
     Type: String
     Description: Name of the stack used to create Lambda functions
@@ -250,20 +254,13 @@ Resources:
     Properties:
       RestApiId: !Ref ApiGatewayApi
       Description: API Gateway Deployment
-
-  ApiGatewayStage:
-    Type: AWS::ApiGateway::Stage
-    Properties:
-      StageName: !Ref Environment
-      Description: API Gateway DEV stage
-      RestApiId: !Ref ApiGatewayApi
-      DeploymentId: !Ref ApiGatewayDeployment
-      # Default rate limit for the stage
-      MethodSettings:
-        - ResourcePath: '/*'
-          HttpMethod: '*'
-          ThrottlingBurstLimit: 1
-          ThrottlingRateLimit: 1
+      StageName: !Ref StageName
+      StageDescription:
+        Description: API Gateway DEV stage
+        LoggingLevel: INFO
+        # Default rate limit for the stage
+        ThrottlingBurstLimit: 1
+        ThrottlingRateLimit: 1
 
   # Same throttle settings for all methods
   UsagePlanOne:
@@ -275,7 +272,7 @@ Resources:
         20 requests per second
       ApiStages:
         - ApiId: !Ref ApiGatewayApi
-          Stage: !Ref ApiGatewayStage
+          Stage: !Ref StageName
       Quota:
         Limit: 100
         Period: DAY
@@ -295,7 +292,7 @@ Resources:
         20 requests per second. Default throttle settings are overridden at method level.
       ApiStages:
         - ApiId: !Ref ApiGatewayApi
-          Stage: !Ref ApiGatewayStage
+          Stage: !Ref Environment
           Throttle:
             "/token/POST":
               BurstLimit: 5
@@ -327,7 +324,7 @@ Resources:
       Enabled: true
       StageKeys:
         - RestApiId: !Ref ApiGatewayApi
-          StageName: !Ref ApiGatewayStage
+          StageName: !Ref StageName
   CustomerOneUsagePlan:
     Type: AWS::ApiGateway::UsagePlanKey
     Properties:
@@ -344,10 +341,21 @@ Resources:
       Enabled: true
       StageKeys:
         - RestApiId: !Ref ApiGatewayApi
-          StageName: !Ref ApiGatewayStage
+          StageName: !Ref StageName
   CustomerTwoUsagePlan:
     Type: AWS::ApiGateway::UsagePlanKey
     Properties:
       KeyId: !Ref ApiKeyCustomerTwo
       KeyType: API_KEY
       UsagePlanId: !Ref UsagePlanTwo
+Outputs:
+  ApiGatewayId:
+    Description: API Gateway Id
+    Value: !Ref ApiGatewayApi
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ApiGatewayId' ] ]
+  ApiGwStageName:
+    Description: API Gateway Stage Name
+    Value: !Ref StageName
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ApiGwStageName' ] ]
