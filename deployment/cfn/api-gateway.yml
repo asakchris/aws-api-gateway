@@ -9,6 +9,10 @@ Parameters:
     Type: String
     Default: 'GW'
     Description: Platform Name
+  StageName:
+    Type: String
+    Default: 'dev'
+    Description: API Gateway Stage Name
   LambdaStackName:
     Type: String
     Description: Name of the stack used to create Lambda functions
@@ -19,6 +23,7 @@ Parameters:
     Type: String
     Description: Name of the stack used to create required IAM roles
 Resources:
+  # API Gateway
   ApiGatewayApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -30,6 +35,13 @@ Resources:
       CloudWatchRoleArn:
         Fn::ImportValue: !Join [':', [!Ref 'RoleStackName', 'ApiGatewayCloudWatchRoleArn']]
 
+  # Cloud watch log group for API Gateway Access Logs
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/API-GW/${Environment}/${Platform}/${ApiGatewayApi}/${StageName}/ACCESS-LOGS'
+      RetentionInDays: 1
+
   # Validator for request parameters and headers
   RequestValidator:
     Type: AWS::ApiGateway::RequestValidator
@@ -39,6 +51,7 @@ Resources:
       ValidateRequestBody: false
       ValidateRequestParameters: true
 
+  # Access token endpoint
   TokenResource:
     Type: AWS::ApiGateway::Resource
     Properties:
@@ -61,7 +74,6 @@ Resources:
           - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations'
           - LambdaArn:
               Fn::ImportValue: !Join [':', [!Ref 'LambdaStackName', 'TokenGenFunctionArn']]
-
   TokenGenFunctionApiGatewayInvoke:
     Type: AWS::Lambda::Permission
     Properties:
@@ -71,6 +83,7 @@ Resources:
       Principal: 'apigateway.amazonaws.com'
       SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayApi}/*/*/*"
 
+  # Custom Lambda authorizer
   RestApiAuthorizerRole:
     Type: AWS::IAM::Role
     Properties:
@@ -114,6 +127,7 @@ Resources:
       Principal: 'apigateway.amazonaws.com'
       SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayApi}/*/*/*"
 
+  # VPC Link
   VpcLink:
     Type: AWS::ApiGateway::VpcLink
     Properties:
@@ -122,6 +136,7 @@ Resources:
       TargetArns:
         - Fn::ImportValue: !Join [':', [!Ref 'LoadBalancerStackName', 'NetworkLoadBalancerARN']]
 
+  # Parent resources
   ApiResource:
     Type: AWS::ApiGateway::Resource
     Properties:
@@ -141,6 +156,7 @@ Resources:
       ParentId: !Ref V1Resource
       PathPart: 'metadata'
 
+  # Stock endpoints
   StocksResource:
     Type: AWS::ApiGateway::Resource
     Properties:
@@ -148,6 +164,7 @@ Resources:
       ParentId: !Ref MetadataResource
       PathPart: 'stocks'
 
+  # Stock post method
   StocksPostMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -166,13 +183,16 @@ Resources:
         ConnectionType: VPC_LINK
         ConnectionId: !Sub '${VpcLink}'
         Uri: !Sub
-          - 'http://${NlbDns}/api/v1/metadata/stocks'
-          - NlbDns:
-              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'NetworkLoadBalancerDNS' ] ]
+          - 'http://${LbDns}/api/v1/metadata/stocks'
+          - LbDns:
+              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'LoadBalancerDNS' ] ]
         TimeoutInMillis: 29000
         RequestParameters:
           integration.request.header.App-User-Name: 'context.authorizer.principalId'
+          integration.request.header.App-Account-Name: 'context.authorizer.accountName'
+          integration.request.header.Request-Id: 'context.requestId'
 
+  # Stock get method
   StocksGetMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -191,20 +211,22 @@ Resources:
         ConnectionType: VPC_LINK
         ConnectionId: !Sub '${VpcLink}'
         Uri: !Sub
-          - 'http://${NlbDns}/api/v1/metadata/stocks'
-          - NlbDns:
-              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'NetworkLoadBalancerDNS' ] ]
+          - 'http://${LbDns}/api/v1/metadata/stocks'
+          - LbDns:
+              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'LoadBalancerDNS' ] ]
         TimeoutInMillis: 29000
         RequestParameters:
           integration.request.header.App-User-Name: 'context.authorizer.principalId'
+          integration.request.header.App-Account-Name: 'context.authorizer.accountName'
+          integration.request.header.Request-Id: 'context.requestId'
 
+  # Stock by id get method
   StocksIdResource:
     Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId: !Ref ApiGatewayApi
       ParentId: !Ref StocksResource
       PathPart: '{stockId}'
-
   StocksByIdGetMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -224,31 +246,59 @@ Resources:
         ConnectionType: VPC_LINK
         ConnectionId: !Sub '${VpcLink}'
         Uri: !Sub
-          - 'http://${NlbDns}/api/v1/metadata/stocks/{stockId}'
-          - NlbDns:
-              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'NetworkLoadBalancerDNS' ] ]
+          - 'http://${LbDns}/api/v1/metadata/stocks/{stockId}'
+          - LbDns:
+              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'LoadBalancerDNS' ] ]
         TimeoutInMillis: 29000
         CacheKeyParameters:
           - 'method.request.path.stockId'
         RequestParameters:
           integration.request.path.stockId: 'method.request.path.stockId'
           integration.request.header.App-User-Name: 'context.authorizer.principalId'
+          integration.request.header.App-Account-Name: 'context.authorizer.accountName'
+          integration.request.header.Request-Id: 'context.requestId'
 
-  ApiGatewayDeployment:
-    Type: AWS::ApiGateway::Deployment
-    DependsOn:
-      - ApiGatewayTokenMethod
-      - StocksPostMethod
-      - StocksGetMethod
-      - StocksByIdGetMethod
+  # Audit log endpoints
+  AuditLogsResource:
+    Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId: !Ref ApiGatewayApi
-      Description: API Gateway Deployment
+      ParentId: !Ref MetadataResource
+      PathPart: 'audit-logs'
 
+  # Audit log get method
+  AuditLogsGetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      RestApiId: !Ref ApiGatewayApi
+      ResourceId: !Ref AuditLogsResource
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref RestApiAuthorizer
+      ApiKeyRequired: true
+      RequestValidatorId: !Ref RequestValidator
+      RequestParameters:
+        method.request.header.token: true
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: GET
+        ConnectionType: VPC_LINK
+        ConnectionId: !Sub '${VpcLink}'
+        Uri: !Sub
+          - 'http://${LbDns}/api/v1/metadata/audit-logs'
+          - LbDns:
+              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'LoadBalancerDNS' ] ]
+        TimeoutInMillis: 29000
+        RequestParameters:
+          integration.request.header.App-User-Name: 'context.authorizer.principalId'
+          integration.request.header.App-Account-Name: 'context.authorizer.accountName'
+          integration.request.header.Request-Id: 'context.requestId'
+
+  # API Gateway Stage
   ApiGatewayStage:
     Type: AWS::ApiGateway::Stage
     Properties:
-      StageName: !Ref Environment
+      StageName: !Ref StageName
       Description: API Gateway DEV stage
       RestApiId: !Ref ApiGatewayApi
       DeploymentId: !Ref ApiGatewayDeployment
@@ -258,6 +308,23 @@ Resources:
           HttpMethod: '*'
           ThrottlingBurstLimit: 1
           ThrottlingRateLimit: 1
+          LoggingLevel: INFO
+      AccessLogSetting:
+        DestinationArn: !GetAtt 'LogGroup.Arn'
+        Format: '{"requestTime": "$context.requestTime", "requestId": "$context.requestId", "httpMethod": "$context.httpMethod", "path": "$context.path", "resourcePath": "$context.resourcePath", "status": $context.status, "responseLatency": $context.responseLatency, "integrationRequestId": "$context.integration.requestId", "functionResponseStatus": "$context.integration.status", "integrationLatency": "$context.integration.latency", "integrationServiceStatus": "$context.integration.integrationStatus", "authorizeResultStatus": "$context.authorize.status", "authorizerServiceStatus": "$context.authorizer.status", "authorizerLatency": "$context.authorizer.latency", "authorizerRequestId": "$context.authorizer.requestId", "ip": "$context.identity.sourceIp", "userAgent": "$context.identity.userAgent", "principalId": "$context.authorizer.principalId"}'
+
+  # API Gateway deployment
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ApiGatewayTokenMethod
+      - StocksPostMethod
+      - StocksGetMethod
+      - StocksByIdGetMethod
+      - AuditLogsGetMethod
+    Properties:
+      RestApiId: !Ref ApiGatewayApi
+      Description: API Gateway Deployment
 
   # Same throttle settings for all methods
   UsagePlanOne:
@@ -345,3 +412,14 @@ Resources:
       KeyId: !Ref ApiKeyCustomerTwo
       KeyType: API_KEY
       UsagePlanId: !Ref UsagePlanTwo
+Outputs:
+  ApiGatewayId:
+    Description: API Gateway Id
+    Value: !Ref ApiGatewayApi
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ApiGatewayId' ] ]
+  ApiGwStageName:
+    Description: API Gateway Stage Name
+    Value: !Ref ApiGatewayStage
+    Export:
+      Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ApiGwStageName' ] ]

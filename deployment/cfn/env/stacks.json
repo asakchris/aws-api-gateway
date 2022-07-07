@@ -67,7 +67,8 @@
         {
           "stackName": "${app_environment}-${app_name}-API-GW",
           "templateFile": "${cfn_dir}/api-gateway.yml",
-          "paramFile": "${cfn_dir}/env/${app_environment}/ApiGateway.json"
+          "paramFile": "${cfn_dir}/env/${app_environment}/ApiGateway.json",
+          "isApiGwStack": "true"
         }
       ]
     }
