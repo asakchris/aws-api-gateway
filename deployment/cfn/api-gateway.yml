@@ -23,6 +23,7 @@ Parameters:
     Type: String
     Description: Name of the stack used to create required IAM roles
 Resources:
+  # API Gateway
   ApiGatewayApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -50,6 +51,7 @@ Resources:
       ValidateRequestBody: false
       ValidateRequestParameters: true
 
+  # Access token endpoint
   TokenResource:
     Type: AWS::ApiGateway::Resource
     Properties:
@@ -72,7 +74,6 @@ Resources:
           - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations'
           - LambdaArn:
               Fn::ImportValue: !Join [':', [!Ref 'LambdaStackName', 'TokenGenFunctionArn']]
-
   TokenGenFunctionApiGatewayInvoke:
     Type: AWS::Lambda::Permission
     Properties:
@@ -82,6 +83,7 @@ Resources:
       Principal: 'apigateway.amazonaws.com'
       SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayApi}/*/*/*"
 
+  # Custom Lambda authorizer
   RestApiAuthorizerRole:
     Type: AWS::IAM::Role
     Properties:
@@ -125,6 +127,7 @@ Resources:
       Principal: 'apigateway.amazonaws.com'
       SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayApi}/*/*/*"
 
+  # VPC Link
   VpcLink:
     Type: AWS::ApiGateway::VpcLink
     Properties:
@@ -133,6 +136,7 @@ Resources:
       TargetArns:
         - Fn::ImportValue: !Join [':', [!Ref 'LoadBalancerStackName', 'NetworkLoadBalancerARN']]
 
+  # Parent resources
   ApiResource:
     Type: AWS::ApiGateway::Resource
     Properties:
@@ -152,6 +156,7 @@ Resources:
       ParentId: !Ref V1Resource
       PathPart: 'metadata'
 
+  # Stock endpoints
   StocksResource:
     Type: AWS::ApiGateway::Resource
     Properties:
@@ -159,6 +164,7 @@ Resources:
       ParentId: !Ref MetadataResource
       PathPart: 'stocks'
 
+  # Stock post method
   StocksPostMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -186,6 +192,7 @@ Resources:
           integration.request.header.App-Account-Name: 'context.authorizer.accountName'
           integration.request.header.Request-Id: 'context.requestId'
 
+  # Stock get method
   StocksGetMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -213,13 +220,13 @@ Resources:
           integration.request.header.App-Account-Name: 'context.authorizer.accountName'
           integration.request.header.Request-Id: 'context.requestId'
 
+  # Stock by id get method
   StocksIdResource:
     Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId: !Ref ApiGatewayApi
       ParentId: !Ref StocksResource
       PathPart: '{stockId}'
-
   StocksByIdGetMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -251,6 +258,7 @@ Resources:
           integration.request.header.App-Account-Name: 'context.authorizer.accountName'
           integration.request.header.Request-Id: 'context.requestId'
 
+  # Audit log endpoints
   AuditLogsResource:
     Type: AWS::ApiGateway::Resource
     Properties:
@@ -258,6 +266,7 @@ Resources:
       ParentId: !Ref MetadataResource
       PathPart: 'audit-logs'
 
+  # Audit log get method
   AuditLogsGetMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -285,6 +294,7 @@ Resources:
           integration.request.header.App-Account-Name: 'context.authorizer.accountName'
           integration.request.header.Request-Id: 'context.requestId'
 
+  # API Gateway Stage
   ApiGatewayStage:
     Type: AWS::ApiGateway::Stage
     Properties:
@@ -303,6 +313,7 @@ Resources:
         DestinationArn: !GetAtt 'LogGroup.Arn'
         Format: '{"requestTime": "$context.requestTime", "requestId": "$context.requestId", "httpMethod": "$context.httpMethod", "path": "$context.path", "resourcePath": "$context.resourcePath", "status": $context.status, "responseLatency": $context.responseLatency, "integrationRequestId": "$context.integration.requestId", "functionResponseStatus": "$context.integration.status", "integrationLatency": "$context.integration.latency", "integrationServiceStatus": "$context.integration.integrationStatus", "authorizeResultStatus": "$context.authorize.status", "authorizerServiceStatus": "$context.authorizer.status", "authorizerLatency": "$context.authorizer.latency", "authorizerRequestId": "$context.authorizer.requestId", "ip": "$context.identity.sourceIp", "userAgent": "$context.identity.userAgent", "principalId": "$context.authorizer.principalId"}'
 
+  # API Gateway deployment
   ApiGatewayDeployment:
     Type: AWS::ApiGateway::Deployment
     DependsOn:
