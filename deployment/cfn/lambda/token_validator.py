@@ -5,19 +5,16 @@ import os
 import requests
 
 log = logging.getLogger()
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 
 def lambda_handler(event, context):
     log.debug("event: {}".format(event))
 
-    request_id = event["requestContext"]["requestId"]
-    log.info("request_id: {}".format(request_id))
-
     # Validate request
     validate(event)
 
-    access_token = event["headers"]["token"]
+    access_token = event["authorizationToken"]
     log.debug("access_token: {}".format(access_token))
 
     # Call Okta to validate token
@@ -34,19 +31,18 @@ def lambda_handler(event, context):
 
         log.info("username: {}, account_name: {}"
                  .format(username, account_name))
-        return generate_policy(username, account_name, request_id, "Allow", "*")
+        return generate_policy(username, account_name, "Allow", "*")
     else:
         log.info("Invalid Token: {}".format(access_token))
         raise Exception("Unauthorized")
 
 
 def validate(event):
-    if "headers" in event:
-        if "token" in event["headers"]:
-            application_token = event["headers"]["token"]
-            log.debug("application_token: {}".format(application_token))
-            if not application_token:
-                raise Exception("Invalid token")
+    if "authorizationToken" in event:
+        application_token = event["authorizationToken"]
+        log.debug("application_token: {}".format(application_token))
+        if not application_token:
+            raise Exception("Invalid token")
     else:
         log.info("Token header is missing")
         raise Exception("Invalid token")
@@ -71,7 +67,7 @@ def validate_token(access_token):
     return response_dict
 
 
-def generate_policy(username, account_name, request_id, effect, method_arn):
+def generate_policy(username, account_name, effect, method_arn):
     policy_document = {
         "principalId": username,
         "policyDocument": {
@@ -86,8 +82,7 @@ def generate_policy(username, account_name, request_id, effect, method_arn):
         },
         "context": {
             "username": username,
-            "accountName": account_name,
-            "requestId": request_id
+            "accountName": account_name
         }
     }
     return policy_document

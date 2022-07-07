@@ -113,7 +113,7 @@ Resources:
         - LambdaArn:
             Fn::ImportValue: !Join [':', [!Ref 'LambdaStackName', 'TokenValidatorFunctionArn']]
       AuthorizerResultTtlInSeconds: 300
-      Type: REQUEST
+      Type: TOKEN
       IdentitySource: 'method.request.header.token'
       RestApiId: !Ref ApiGatewayApi
   TokenValidatorFunctionApiGatewayInvoke:
