@@ -34,6 +34,13 @@ Resources:
       CloudWatchRoleArn:
         Fn::ImportValue: !Join [':', [!Ref 'RoleStackName', 'ApiGatewayCloudWatchRoleArn']]
 
+  # Cloud watch log group for API Gateway Access Logs
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/API-GW/${Environment}/${Platform}/${ApiGatewayApi}/${StageName}/ACCESS-LOGS'
+      RetentionInDays: 1
+
   # Validator for request parameters and headers
   RequestValidator:
     Type: AWS::ApiGateway::RequestValidator
@@ -177,7 +184,7 @@ Resources:
         RequestParameters:
           integration.request.header.App-User-Name: 'context.authorizer.principalId'
           integration.request.header.App-Account-Name: 'context.authorizer.accountName'
-          integration.request.header.Request-Id: 'context.authorizer.requestId'
+          integration.request.header.Request-Id: 'context.requestId'
 
   StocksGetMethod:
     Type: AWS::ApiGateway::Method
@@ -204,7 +211,7 @@ Resources:
         RequestParameters:
           integration.request.header.App-User-Name: 'context.authorizer.principalId'
           integration.request.header.App-Account-Name: 'context.authorizer.accountName'
-          integration.request.header.Request-Id: 'context.authorizer.requestId'
+          integration.request.header.Request-Id: 'context.requestId'
 
   StocksIdResource:
     Type: AWS::ApiGateway::Resource
@@ -242,7 +249,7 @@ Resources:
           integration.request.path.stockId: 'method.request.path.stockId'
           integration.request.header.App-User-Name: 'context.authorizer.principalId'
           integration.request.header.App-Account-Name: 'context.authorizer.accountName'
-          integration.request.header.Request-Id: 'context.authorizer.requestId'
+          integration.request.header.Request-Id: 'context.requestId'
 
   ApiGatewayStage:
     Type: AWS::ApiGateway::Stage
@@ -258,6 +265,9 @@ Resources:
           ThrottlingBurstLimit: 1
           ThrottlingRateLimit: 1
           LoggingLevel: INFO
+          AccessLogSetting:
+            DestinationArn: !GetAtt 'LogGroup.Arn'
+            Format: '{"requestTime": "$context.requestTime", "requestId": "$context.requestId", "httpMethod": "$context.httpMethod", "path": "$context.path", "resourcePath": "$context.resourcePath", "status": $context.status, "responseLatency": $context.responseLatency, "integrationRequestId": "$context.integration.requestId", "functionResponseStatus": "$context.integration.status", "integrationLatency": "$context.integration.latency", "integrationServiceStatus": "$context.integration.integrationStatus", "authorizeResultStatus": "$context.authorize.status", "authorizerServiceStatus": "$context.authorizer.status", "authorizerLatency": "$context.authorizer.latency", "authorizerRequestId": "$context.authorizer.requestId", "ip": "$context.identity.sourceIp", "userAgent": "$context.identity.userAgent", "principalId": "$context.authorizer.principalId"}'
 
   ApiGatewayDeployment:
     Type: AWS::ApiGateway::Deployment
