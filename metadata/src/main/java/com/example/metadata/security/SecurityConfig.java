@@ -1,5 +1,6 @@
 package com.example.metadata.security;
 
+import com.example.metadata.constant.Headers.Constants;
 import com.example.metadata.service.UserService;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +55,7 @@ public class SecurityConfig {
 
   @Bean
   public WebSecurityCustomizer webSecurityCustomizer() {
-    return web -> web.ignoring().antMatchers("/actuator/**");
+    return web -> web.ignoring().antMatchers("/actuator/**", "/h2-console/**");
   }
 
   @Bean
@@ -76,7 +77,7 @@ public class SecurityConfig {
     // Reusing a filter from Spring Security
     RequestHeaderAuthenticationFilter filter = new RequestHeaderAuthenticationFilter();
     // This needs to be change once we move into token based auth
-    filter.setPrincipalRequestHeader("App-User-Name");
+    filter.setPrincipalRequestHeader(Constants.USER_NAME_VALUE);
 
     // Our Pre-auth provider just converts the corresponding security header to an instance of
     // UsernamePasswordAuthenticationToken. Note that the filter throws exception if header is

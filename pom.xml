@@ -11,6 +11,7 @@
 
   <modules>
     <module>metadata</module>
+    <module>performance-testing</module>
   </modules>
 
   <parent>
@@ -20,9 +21,20 @@
   </parent>
 
   <properties>
-    <java.version>18</java.version>
+    <java.version>17</java.version>
+    <vavr.version>0.10.4</vavr.version>
     <dockerfile-maven-plugin.version>1.4.13</dockerfile-maven-plugin.version>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.vavr</groupId>
+        <artifactId>vavr</artifactId>
+        <version>${vavr.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <build>
     <pluginManagement>

@@ -23,7 +23,13 @@
 			],
 			"request": {
 				"method": "POST",
-				"header": [],
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "{{API_KEY}}",
+						"type": "text"
+					}
+				],
 				"body": {
 					"mode": "urlencoded",
 					"urlencoded": [
@@ -60,6 +66,11 @@
 						"key": "{{AUTH_HEADER_NAME}}",
 						"value": "{{AUTH_HEADER_VALUE}}",
 						"type": "text"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{API_KEY}}",
+						"type": "text"
 					}
 				],
 				"body": {
@@ -95,6 +106,11 @@
 						"key": "{{AUTH_HEADER_NAME}}",
 						"value": "{{AUTH_HEADER_VALUE}}",
 						"type": "text"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{API_KEY}}",
+						"type": "text"
 					}
 				],
 				"url": {
@@ -121,6 +137,11 @@
 					{
 						"key": "{{AUTH_HEADER_NAME}}",
 						"value": "{{AUTH_HEADER_VALUE}}",
+						"type": "text"
+					},
+					{
+						"key": "x-api-key",
+						"value": "{{API_KEY}}",
 						"type": "text"
 					}
 				],

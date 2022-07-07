@@ -72,14 +72,27 @@ fi
 
 echo "All stacks are deployed successfully"
 
+# API Gateway will not deploy changes to the stages from second time, so run AWS CLI to
+# manually deploy stage. It should run only during deployment, not start/stop
+if [ -z "${is_maintenance}" ] || [ "${is_maintenance}" != "true" ]; then
+  echo "Start deploying API Gateway Stage"
+  deploy_api_gw_stage ${cfn_dir}/env/stacks.json
+  api_gw_deploy_rc=$?
+  if [ "${api_gw_deploy_rc}" -ne "0" ]; then
+    echo "API Gateway deployment failed, so failing deployment: ${api_gw_deploy_rc}"
+    exit 1
+  fi
+  echo "Deployed API Gateway Stage successfully"
+fi
+
 # CFN deploy command fails due to runtime error, then the command will not reach the service
 # Hence, it will not start the tasks for ECS service
 # So, check for ECS services without running tasks and fail the deployment if any
 if [ "${is_active}" = "true" ]; then
   echo "ECS Services are started, so need to check for ECS services without running tasks"
-  get_group_stack_property_value ${cfn_dir}/env/stacks.json 3 0 "stackName" l_stack_name
+  get_group_stack_property_value ${cfn_dir}/env/stacks.json 2 2 "stackName" l_stack_name
   echo "stack_name: ${l_stack_name}"
-  get_ecs_servies_with_no_tasks "${l_stack_name}" EcsClusterName
+  get_ecs_servies_with_no_tasks "${l_stack_name}"
   task_check_rc=$?
   if [ "${task_check_rc}" -ne "0" ]; then
     echo "ECS Services without running tasks found, so failing deployment: ${task_check_rc}"

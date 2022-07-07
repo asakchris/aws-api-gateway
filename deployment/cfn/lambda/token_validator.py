@@ -1,76 +1,88 @@
 import json
+import logging
 import os
 
 import requests
 
+log = logging.getLogger()
+log.setLevel(logging.INFO)
+
 
 def lambda_handler(event, context):
-  print(event)
+    log.debug("event: {}".format(event))
 
-  # Validate request
-  validate(event)
+    # Validate request
+    validate(event)
 
-  token = event['authorizationToken']
-  response_dict = validate_token(token)
+    access_token = event["authorizationToken"]
+    log.debug("access_token: {}".format(access_token))
 
-  if response_dict.get('active'):
-    principal_id = response_dict['sub']
-    print('create headers')
-    print(principal_id)
-    oauth_header = {}
-    if 'sub' in response_dict:
-      oauth_header['uid'] = response_dict['sub']
+    # Call Okta to validate token
+    response_dict = validate_token(access_token)
 
-    if 'username' in response_dict:
-      oauth_header['username'] = response_dict['username']
+    if response_dict.get("active"):
+        username = ""
+        if "username" in response_dict:
+            username = response_dict["username"]
+        
+        account_name = ""
+        if "sub" in response_dict:
+            account_name = response_dict["sub"]
 
-    print('OAuth Header: ' + json.dumps(oauth_header))
-    print('Token validation success: ' + principal_id)
-    return generatePolicy(principal_id, oauth_header, 'Allow', '*')
-  else:
-    print('Invalid Token')
-    raise Exception('Unauthorized')
+        log.info("username: {}, account_name: {}"
+                 .format(username, account_name))
+        return generate_policy(username, account_name, "Allow", "*")
+    else:
+        log.info("Invalid Token: {}".format(access_token))
+        raise Exception("Unauthorized")
 
 
 def validate(event):
-  if 'authorizationToken' in event:
-    application_token = event['authorizationToken']
-    print('application_token: ', application_token)
-    if not application_token:
-      raise Exception('Invalid token')
-  else:
-    print('Token header is missing')
-    raise Exception('Invalid token')
+    if "authorizationToken" in event:
+        application_token = event["authorizationToken"]
+        log.debug("application_token: {}".format(application_token))
+        if not application_token:
+            raise Exception("Invalid token")
+    else:
+        log.info("Token header is missing")
+        raise Exception("Invalid token")
+    log.info("Validation completed")
 
 
-def validate_token(token):
-  url = os.environ['OAUTH_TOKEN_INTROSPECT_URL']
-  client_secret = os.environ['OAUTH_CLIENT_SECRET']
-  headers = {'Content-Type': 'application/x-www-form-urlencoded',
-             'Authorization': f'Basic {client_secret}'}
-  payload = f'token={token}'
-  response = requests.post(url=url, data=payload, headers=headers)
-  response_dict = json.loads(response.text)
-  print(response_dict)
-  return response_dict
+def validate_token(access_token):
+    token_url = os.environ["OAUTH_TOKEN_INTROSPECT_URL"]
+    client_secret = os.environ["OAUTH_CLIENT_SECRET"]
+    log.info("token_url: {}, client_secret: {}"
+             .format(token_url, client_secret))
 
-
-def generatePolicy(principal_id, oauth_header, effect, method_arn):
-  policy_document = {
-    'principalId': principal_id,
-    'policyDocument': {
-      'Version': '2012-10-17',
-      'Statement': [
-        {
-          'Action': 'execute-api:Invoke',
-          'Effect': effect,
-          'Resource': method_arn
-        }
-      ]
-    },
-    'context': {
-      'uid': principal_id,
-      'idm_header': json.dumps(oauth_header)
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": f"Basic {client_secret}"
     }
-  }
-  return policy_document
+    payload = f"token={access_token}"
+    response = requests.post(url=token_url, data=payload, headers=headers)
+    log.info("response: {}".format(response))
+    response_dict = json.loads(response.text)
+    log.info("response_dict: {}".format(response_dict))
+    return response_dict
+
+
+def generate_policy(username, account_name, effect, method_arn):
+    policy_document = {
+        "principalId": username,
+        "policyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Action": "execute-api:Invoke",
+                    "Effect": effect,
+                    "Resource": method_arn
+                }
+            ]
+        },
+        "context": {
+            "username": username,
+            "accountName": account_name
+        }
+    }
+    return policy_document
