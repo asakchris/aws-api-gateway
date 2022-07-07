@@ -564,12 +564,10 @@ add_cw_log_group_tags() {
 
 # This function identify the ECS Services with no task running for given ECS Cluster
 # It takes 2 arguments
-# (1) Any ECS stack name in given cluster
-# (2) ECS stack parameter of ECS Cluster name
+# (1) ECS Cluster stack name in given cluster
 # It returns 0 if all ECS services have running tasks otherwise returns 1
 get_ecs_servies_with_no_tasks() {
-  local _parameters=$(aws --region "${aws_region}" cloudformation describe-stacks --stack-name $1 --query "Stacks[0].Parameters")
-  local _ecs_cluster_name=$(echo "${_parameters}" | jq -r --arg CLUSTER_NAME "$2" '.[] | select (.ParameterKey==$CLUSTER_NAME) | .ParameterValue')
+  local _ecs_cluster_name=$(aws --region "${aws_region}" cloudformation describe-stacks --stack-name ${1} --query 'Stacks[0].Outputs[?OutputKey==`EcsClusterName`].OutputValue' --output text)
   echo "_ecs_cluster_name: ${_ecs_cluster_name}"
 
   local _service_list=$(aws --region "${aws_region}" ecs list-services --cluster "${_ecs_cluster_name}")
