@@ -310,7 +310,7 @@ Resources:
   H2ConsoleProxyAnyMethod:
     Type: AWS::ApiGateway::Method
     Properties:
-      HttpMethod: GET
+      HttpMethod: ANY
       RestApiId: !Ref ApiGatewayApi
       ResourceId: !Ref H2ConsoleProxyResource
       AuthorizationType: NONE
