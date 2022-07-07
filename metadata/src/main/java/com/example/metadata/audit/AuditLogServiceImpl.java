@@ -1,6 +1,7 @@
 package com.example.metadata.audit;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import javax.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,5 +34,10 @@ public class AuditLogServiceImpl implements AuditLogService {
             .createdDate(LocalDateTime.now())
             .build();
     return repository.save(auditLog);
+  }
+
+  @Override
+  public List<AuditLog> findAll() {
+    return repository.findAll();
   }
 }
