@@ -314,6 +314,8 @@ Resources:
       RestApiId: !Ref ApiGatewayApi
       ResourceId: !Ref H2ConsoleProxyResource
       AuthorizationType: NONE
+      RequestParameters:
+        method.request.path.proxy: true
       Integration:
         Type: HTTP_PROXY
         IntegrationHttpMethod: ANY
