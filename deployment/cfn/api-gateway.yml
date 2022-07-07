@@ -244,6 +244,21 @@ Resources:
           integration.request.header.App-Account-Name: 'context.authorizer.accountName'
           integration.request.header.Request-Id: 'context.authorizer.requestId'
 
+  ApiGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: !Ref StageName
+      Description: API Gateway DEV stage
+      RestApiId: !Ref ApiGatewayApi
+      DeploymentId: !Ref ApiGatewayDeployment
+      # Default rate limit for the stage
+      MethodSettings:
+        - ResourcePath: '/*'
+          HttpMethod: '*'
+          ThrottlingBurstLimit: 1
+          ThrottlingRateLimit: 1
+          LoggingLevel: INFO
+
   ApiGatewayDeployment:
     Type: AWS::ApiGateway::Deployment
     DependsOn:
@@ -254,19 +269,10 @@ Resources:
     Properties:
       RestApiId: !Ref ApiGatewayApi
       Description: API Gateway Deployment
-      StageName: !Ref StageName
-      StageDescription:
-        Description: API Gateway DEV stage
-        LoggingLevel: INFO
-        # Default rate limit for the stage
-        ThrottlingBurstLimit: 1
-        ThrottlingRateLimit: 1
 
   # Same throttle settings for all methods
   UsagePlanOne:
     Type: AWS::ApiGateway::UsagePlan
-    DependsOn:
-      - ApiGatewayDeployment
     Properties:
       UsagePlanName: PLAN1_100_REQUESTS_PER_DAY_WITH_BURST_10_RATE_20
       Description: >- 
@@ -274,7 +280,7 @@ Resources:
         20 requests per second
       ApiStages:
         - ApiId: !Ref ApiGatewayApi
-          Stage: !Ref StageName
+          Stage: !Ref ApiGatewayStage
       Quota:
         Limit: 100
         Period: DAY
@@ -287,8 +293,6 @@ Resources:
   # Override default throttle settings at method level
   UsagePlanTwo:
     Type: AWS::ApiGateway::UsagePlan
-    DependsOn:
-      - ApiGatewayDeployment
     Properties:
       UsagePlanName: PLAN2_500_REQUESTS_PER_DAY_WITH_BURST_15_RATE_20_METHOD_LEVEL_THROTTLE
       Description: >-
@@ -296,7 +300,7 @@ Resources:
         20 requests per second. Default throttle settings are overridden at method level.
       ApiStages:
         - ApiId: !Ref ApiGatewayApi
-          Stage: !Ref Environment
+          Stage: !Ref ApiGatewayStage
           Throttle:
             "/token/POST":
               BurstLimit: 5
@@ -322,15 +326,13 @@ Resources:
   # CustomerOne
   ApiKeyCustomerOne:
     Type: AWS::ApiGateway::ApiKey
-    DependsOn:
-      - UsagePlanOne
     Properties:
       Name: CUSTOMER_1
       Description: API Key for customer 1
       Enabled: true
       StageKeys:
         - RestApiId: !Ref ApiGatewayApi
-          StageName: !Ref StageName
+          StageName: !Ref ApiGatewayStage
   CustomerOneUsagePlan:
     Type: AWS::ApiGateway::UsagePlanKey
     Properties:
@@ -341,15 +343,13 @@ Resources:
   # CustomerTwo
   ApiKeyCustomerTwo:
     Type: AWS::ApiGateway::ApiKey
-    DependsOn:
-      - UsagePlanTwo
     Properties:
       Name: CUSTOMER_2
       Description: API Key for customer 2
       Enabled: true
       StageKeys:
         - RestApiId: !Ref ApiGatewayApi
-          StageName: !Ref StageName
+          StageName: !Ref ApiGatewayStage
   CustomerTwoUsagePlan:
     Type: AWS::ApiGateway::UsagePlanKey
     Properties:
@@ -364,6 +364,6 @@ Outputs:
       Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ApiGatewayId' ] ]
   ApiGwStageName:
     Description: API Gateway Stage Name
-    Value: !Ref StageName
+    Value: !Ref ApiGatewayStage
     Export:
       Name: !Join [ ':', [ !Ref 'AWS::StackName', 'ApiGwStageName' ] ]
