@@ -301,6 +301,27 @@ Resources:
       RestApiId: !Ref ApiGatewayApi
       ParentId: !Ref MetadataResource
       PathPart: 'h2-console'
+
+  # H2 console any method
+  H2ConsoleGetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: ANY
+      RestApiId: !Ref ApiGatewayApi
+      ResourceId: !Ref H2ConsoleResource
+      AuthorizationType: NONE
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: ANY
+        ConnectionType: VPC_LINK
+        ConnectionId: !Sub '${VpcLink}'
+        Uri: !Sub
+          - 'http://${LbDns}/api/v1/metadata/h2-console'
+          - LbDns:
+              Fn::ImportValue: !Join [ ':', [ !Ref 'LoadBalancerStackName', 'LoadBalancerDNS' ] ]
+        TimeoutInMillis: 29000
+
+  # H2 console proxy any method
   H2ConsoleProxyResource:
     Type: AWS::ApiGateway::Resource
     Properties:
@@ -330,7 +351,6 @@ Resources:
           - 'method.request.path.proxy'
         RequestParameters:
           integration.request.path.proxy: 'method.request.path.proxy'
-
 
   # API Gateway Stage
   ApiGatewayStage:
